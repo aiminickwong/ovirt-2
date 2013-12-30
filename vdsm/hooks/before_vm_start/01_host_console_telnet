@@ -1,0 +1,58 @@
+#!/usr/bin/python
+'''
+XML syntax that is added:
+
+
+
+Add a serial device to a VM before it starts with oVirt to allow telnet access.
+Add the following custom commands to oVirt engine:
+	UserDefinedVMProperties='telnet_console=^(true|false)$'
+Note: UserDefinedVMProperties is semi-colon(;) delimited if you already have custom ones defined.
+
+
+
+
+
+'''
+
+
+import os
+import sys
+import io
+
+import hooking
+
+f = open('/tmp/test','a')
+f.write("Running startup script.\n")
+
+def create_serial_device(domxml):
+    serial = domxml.createElement('serial')
+    serial.setAttribute('type', 'tcp')
+    
+    source = domxml.createElement('source')
+    source.setAttribute('mode','bind')
+    source.setAttribute('host','0.0.0.0')
+    source.setAttribute('service','2445')
+    
+    protocol = domxml.createElement('protocol')
+    protocol.setAttribute('type','telnet')
+    
+    target = domxml.createElement('target')
+    target.setAttribute('port','1')
+
+    serial.appendChild(source)
+    serial.appendChild(protocol)
+    serial.appendChild(target)
+    return serial
+
+try:
+	if os.environ.has_key('telnet_console'):
+		dxml = hooking.read_domxml()
+		devices = dxml.getElementsByTagName('devices')[0]
+		serial = create_serial_device(dxml)
+		devices.appendChild(serial)
+		hooking.write_domxml(dxml)
+except Exception as e:
+	f.write(str(e))
+finally:
+	f.close()
